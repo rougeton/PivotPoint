@@ -1,34 +1,11 @@
-# Xcode
-build/
-DerivedData/
-*.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
-xcuserdata/
-*.xccheckout
-*.moved-aside
-*.xcuserstate
-*.xcscmblueprint
-
-# Swift Package Manager
-.build/
-Packages/
-.swiftpm/
-Package.resolved
-
-# CocoaPods
+# Pods
 Pods/
 Podfile.lock
 
 # Carthage
 Carthage/Build/
 
-# Fastlane
+# Fastlane output
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
@@ -38,8 +15,12 @@ fastlane/test_output
 timeline.xctimeline
 playground.xcworkspace
 
-# macOS
+# macOS system files
 *.DS_Store
 
 # Logs
 *.log
+
+# Build artifacts
+build/
+DerivedData/
