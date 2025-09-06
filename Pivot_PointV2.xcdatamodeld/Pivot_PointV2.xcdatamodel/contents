@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788.4" systemVersion="24G90" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="Pivot_PointV2">
+    <entity name="DTAReport" representedClassName="DTAReport" syncable="YES" codeGenerationType="class">
+        <attribute name="activity" attributeType="String"/>
+        <attribute name="areaBetweenPointsSafeForWork" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="areaSafeForWorkComment" optional="YES" attributeType="String"/>
+        <attribute name="assessedBy" attributeType="String"/>
+        <attribute name="assessedDistanceFromWorkArea" attributeType="String"/>
+        <attribute name="assessedMin1_5TreeLengths" attributeType="String"/>
+        <attribute name="assessedTLComment" optional="YES" attributeType="String"/>
+        <attribute name="assessmentStartEndSpot" attributeType="String"/>
+        <attribute name="comments" optional="YES" attributeType="String"/>
+        <attribute name="deviceType" optional="YES" attributeType="String"/>
+        <attribute name="dtaMarkingProtocolComment" optional="YES" attributeType="String"/>
+        <attribute name="dtaMarkingProtocolFollowed" attributeType="String"/>
+        <attribute name="dtfCompletedBy" optional="YES" attributeType="String"/>
+        <attribute name="estimatedTreesFelled" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="fireCenter" optional="YES" attributeType="String"/>
+        <attribute name="fireNumber" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="levelOfDisturbance" attributeType="String"/>
+        <attribute name="locationDDM" attributeType="String"/>
+        <attribute name="lodLowHazards" optional="YES" attributeType="String"/>
+        <attribute name="lodMediumFirLarchPineSpruce" optional="YES" attributeType="String"/>
+        <attribute name="lodMediumRedYellowCedar" optional="YES" attributeType="String"/>
+        <attribute name="manualDateTime" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="noWorkZones" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="noWorkZonesPresent" optional="YES" attributeType="String"/>
+        <attribute name="primaryHazardsPresent" attributeType="String"/>
+        <attribute name="reassessmentNeeded" attributeType="String"/>
+        <attribute name="reportTitle" attributeType="String"/>
+        <attribute name="saoBriefedToCrew" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="saoComment" optional="YES" attributeType="String"/>
+        <attribute name="saoOverview" attributeType="String"/>
+        <relationship name="fireFolder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FireFolder" inverseName="dtaReports" inverseEntity="FireFolder"/>
+        <relationship name="fuelTypes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="FuelTypeSelection" inverseName="dtaReport" inverseEntity="FuelTypeSelection"/>
+        <relationship name="mediaAttachments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MediaAttachment" inverseName="dtaReport" inverseEntity="MediaAttachment"/>
+        <relationship name="waypoints" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="DTAWaypoint" inverseName="dtaReport" inverseEntity="DTAWaypoint"/>
+    </entity>
+    <entity name="DTAWaypoint" representedClassName="DTAWaypoint" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isEndPoint" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isSpotPoint" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isStartPoint" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isStopPoint" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="label" optional="YES" attributeType="String"/>
+        <attribute name="latitude" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="locationNotes" optional="YES" attributeType="String"/>
+        <attribute name="longitude" attributeType="Double" usesScalarValueType="YES"/>
+        <relationship name="dtaReport" maxCount="1" deletionRule="Nullify" destinationEntity="DTAReport" inverseName="waypoints" inverseEntity="DTAReport"/>
+        <relationship name="waypoints" optional="YES" toMany="YES" deletionRule="Cascade" ordered="YES" destinationEntity="DTAWaypoint" inverseName="waypoints" inverseEntity="DTAWaypoint"/>
+    </entity>
+    <entity name="FireCSV" representedClassName="FireCSV" syncable="YES" codeGenerationType="class">
+        <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="csvData" optional="YES" attributeType="Binary"/>
+        <attribute name="fileName" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <relationship name="folder" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="FireFolder" inverseName="csvExports" inverseEntity="FireFolder"/>
+    </entity>
+    <entity name="FireFolder" representedClassName="FireFolder" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="erpDocumentPath" optional="YES" attributeType="String"/>
+        <attribute name="fireCenter" optional="YES" attributeType="String"/>
+        <attribute name="fireNumber" optional="YES" attributeType="String"/>
+        <attribute name="folderName" optional="YES" attributeType="String"/>
+        <attribute name="iapDocumentPath" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <relationship name="csvExports" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FireCSV" inverseName="folder" inverseEntity="FireCSV"/>
+        <relationship name="dtaReports" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="DTAReport" inverseName="fireFolder" inverseEntity="DTAReport"/>
+        <relationship name="kmlExports" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FireKML" inverseName="folder" inverseEntity="FireKML"/>
+        <relationship name="pdfs" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FirePDF" inverseName="folder" inverseEntity="FirePDF"/>
+    </entity>
+    <entity name="FireKML" representedClassName="FireKML" syncable="YES" codeGenerationType="class">
+        <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="fileName" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="kmlData" optional="YES" attributeType="Binary"/>
+        <relationship name="folder" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="FireFolder" inverseName="kmlExports" inverseEntity="FireFolder"/>
+    </entity>
+    <entity name="FireLog" representedClassName="FireLog" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="latitude" attributeType="Double"/>
+        <attribute name="longitude" attributeType="Double"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="FirePDF" representedClassName="FirePDF" syncable="YES" codeGenerationType="class">
+        <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="erpDocumentPath" optional="YES" attributeType="String"/>
+        <attribute name="fileName" optional="YES" attributeType="String"/>
+        <attribute name="iapDocumentPath" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="pdfData" optional="YES" attributeType="Binary"/>
+        <attribute name="url" optional="YES" attributeType="String"/>
+        <relationship name="folder" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="FireFolder" inverseName="pdfs" inverseEntity="FireFolder"/>
+    </entity>
+    <entity name="FuelTypeSelection" representedClassName="FuelTypeSelection" syncable="YES" codeGenerationType="class">
+        <attribute name="fuelType" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="percentage" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="dtaReport" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="DTAReport" inverseName="fuelTypes" inverseEntity="DTAReport"/>
+    </entity>
+    <entity name="MediaAttachment" representedClassName="MediaAttachment" syncable="YES" codeGenerationType="class">
+        <attribute name="fileName" optional="YES" attributeType="String"/>
+        <attribute name="fileURL" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="mediaType" optional="YES" attributeType="String"/>
+        <attribute name="photoAltitude" optional="YES" attributeType="String"/>
+        <attribute name="photoDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="photoLatitude" optional="YES" attributeType="String"/>
+        <attribute name="photoLocationDDM" optional="YES" attributeType="String"/>
+        <attribute name="photoLongitude" optional="YES" attributeType="String"/>
+        <attribute name="photoOrientation" optional="YES" attributeType="String"/>
+        <attribute name="photoTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="dtaReport" maxCount="1" deletionRule="Nullify" destinationEntity="DTAReport" inverseName="mediaAttachments" inverseEntity="DTAReport"/>
+    </entity>
+</model>
