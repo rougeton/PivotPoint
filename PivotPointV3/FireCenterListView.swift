@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct FireCenterListView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var userSettings: UserSettings
     
     let fireCenters = [
@@ -15,46 +14,32 @@ struct FireCenterListView: View {
     ]
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
+            // Background header
             HeaderView()
-                .environmentObject(userSettings)
-                .frame(maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea(edges: .top)
 
+            // Main content with proper spacing
             VStack(spacing: 0) {
-                HStack {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Text("Fire Center")
-                        .font(.title2.bold())
-                        .foregroundColor(.primary)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.left.circle.fill")
-                        .font(.title2)
-                        .opacity(0)
-                }
-                .padding()
-                .background(Color(.systemGray6))
+                // Custom title area below header
+                Text("Fire Center")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                    .padding(.top, 200) // Space for header
+                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity)
+                    .background(.regularMaterial)
 
+                // List content
                 List(fireCenters, id: \.self) { center in
-                    NavigationLink(destination: FireFolderListView(fireCenter: center)) {
-                        Text(center)
-                    }
+                    NavigationLink(center, value: center)
                 }
                 .listStyle(.insetGrouped)
             }
-            .padding(.top, 200) // Increased padding to move content down
         }
-        .navigationBarHidden(true)
-        .ignoresSafeArea(edges: .top)
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
     }
 }

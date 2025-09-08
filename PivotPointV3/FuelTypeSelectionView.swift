@@ -4,19 +4,31 @@ import CoreData
 struct FuelTypeSelectionView: View {
     @ObservedObject var report: DTAReport
     let context: NSManagedObjectContext
-    
-    @State private var selections: [FuelTypeSelection] = []
-    @State private var isUpdatingPercentages = false // Flag to prevent infinite loops
+    let viewModel: DTAReportViewModel?
+
+    private var selections: [FuelTypeSelection] {
+        (report.fuelTypes as? Set<FuelTypeSelection> ?? []).sorted { $0.fuelType ?? "" < $1.fuelType ?? "" }
+    }
     
     private var totalPercentage: Int {
         selections.reduce(0) { $0 + Int($1.percentage) }
     }
 
     var body: some View {
-        Form {
+        ZStack(alignment: .top) {
+            // Background header
+            HeaderView()
+                .ignoresSafeArea(edges: .top)
+
+            // Form content with proper spacing
+            Form {
+                // Spacer section to push content below header
+                Section(header: Spacer(minLength: 200)) {
+                    EmptyView()
+                }
             Section("Select Fuel Types") {
-                ForEach(selections.indices, id: \.self) { index in
-                    fuelTypeRow(for: index)
+                ForEach(selections) { selection in
+                    fuelTypeRow(for: selection)
                 }
                 
                 if DTAPicklists.fuelTypeOptions.count > selections.count {
@@ -42,41 +54,37 @@ struct FuelTypeSelectionView: View {
                         Text("\(totalPercentage)%")
                             .foregroundColor(totalPercentage == 100 ? .green : .red)
                     }
-                    
                     if totalPercentage != 100 {
-                        Text("Percentages must total 100%")
-                            .font(.caption)
-                            .foregroundColor(.red)
+                        Text("Percentages must total 100%").font(.caption).foregroundColor(.red)
                     }
                 }
             }
+            }
         }
-        .navigationTitle("Fuel Types")
-        .onAppear(perform: loadSelections)
-        .onDisappear(perform: saveSelections)
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
     }
     
     @ViewBuilder
-    private func fuelTypeRow(for index: Int) -> some View {
+    private func fuelTypeRow(for selection: FuelTypeSelection) -> some View {
         VStack {
             HStack {
-                Text(selections[index].fuelType ?? "Unknown")
+                Text(selection.fuelType ?? "Unknown")
                 Spacer()
                 Button(role: .destructive) {
                     withAnimation {
-                        toggleSelection(for: selections[index].fuelType ?? "")
+                        toggleSelection(for: selection.fuelType ?? "")
                     }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                }
+                } label: { Image(systemName: "xmark.circle.fill") }
             }
-            .buttonStyle(PressedHighlightButtonStyle())
+            .buttonStyle(.plain)
             
             if selections.count > 1 {
                 Picker("Percentage", selection: Binding(
-                    get: { selections[index].percentage },
+                    get: { selection.percentage },
                     set: { newValue in
-                        updatePercentage(at: index, to: newValue)
+                        updatePercentage(for: selection, to: newValue)
                     }
                 )) {
                     Text("25%").tag(Int16(25))
@@ -90,97 +98,67 @@ struct FuelTypeSelectionView: View {
         .padding(.vertical, 4)
     }
     
-    private func loadSelections() {
-        let set = report.fuelTypes as? Set<FuelTypeSelection> ?? []
-        self.selections = Array(set).sorted { $0.fuelType ?? "" < $1.fuelType ?? "" }
-    }
-    
-    private func saveSelections() {
-        let currentSet = report.fuelTypes as? Set<FuelTypeSelection> ?? Set()
-        for item in currentSet {
-            if !selections.contains(item) {
-                context.delete(item)
-            }
-        }
-        report.fuelTypes = NSSet(array: selections)
-    }
-    
     private func toggleSelection(for option: String) {
-        if let index = selections.firstIndex(where: { $0.fuelType == option }) {
-            let itemToDelete = selections[index]
-            selections.remove(at: index)
-            if itemToDelete.isInserted || context.registeredObjects.contains(itemToDelete) {
-                context.delete(itemToDelete)
-            }
+        // Manually notify observers that the report object will change.
+        report.objectWillChange.send()
+        
+        let mutableFuelTypes = report.mutableSetValue(forKey: "fuelTypes")
+        
+        if let selectionToRemove = selections.first(where: { $0.fuelType == option }) {
+            mutableFuelTypes.remove(selectionToRemove)
+            context.delete(selectionToRemove)
         } else {
             let newSelection = FuelTypeSelection(context: context)
             newSelection.id = UUID()
             newSelection.fuelType = option
             newSelection.percentage = 0
             newSelection.dtaReport = report
-            selections.append(newSelection)
+            mutableFuelTypes.add(newSelection)
         }
         
-        // Set initial percentages when adding/removing items
-        if selections.count == 1 {
-            selections[0].percentage = 100
-        } else if selections.count == 2 {
-            selections[0].percentage = 50
-            selections[1].percentage = 50
-        } else if selections.count > 2 {
-            // For more than 2 selections, distribute evenly
-            let basePercentage = Int16(100 / selections.count)
-            let remainder = Int16(100 % selections.count)
-            
-            for i in selections.indices {
-                selections[i].percentage = basePercentage + (i < remainder ? 1 : 0)
+        let currentSelections = mutableFuelTypes.allObjects as! [FuelTypeSelection]
+        if currentSelections.count == 1 {
+            currentSelections[0].percentage = 100
+        } else if currentSelections.count > 1 {
+            let basePercentage = 100 / currentSelections.count
+            let remainder = 100 % currentSelections.count
+            for (i, item) in currentSelections.sorted(by: { $0.fuelType ?? "" < $1.fuelType ?? "" }).enumerated() {
+                item.percentage = Int16(basePercentage + (i < remainder ? 1 : 0))
             }
         }
         
-        selections.sort { $0.fuelType ?? "" < $1.fuelType ?? "" }
+        try? context.save()
+
+        // Trigger immediate UI update in the parent view
+        viewModel?.refreshFuelTypes()
     }
     
-    // FIXED: Proper complementary percentage update logic
-    private func updatePercentage(at index: Int, to newValue: Int16) {
-        guard !isUpdatingPercentages && index < selections.count else { return }
+    private func updatePercentage(for selection: FuelTypeSelection, to newValue: Int16) {
+        // Manually notify observers for instant feedback.
+        report.objectWillChange.send()
         
-        isUpdatingPercentages = true
+        selection.percentage = newValue
+        let currentSelections = self.selections
         
-        // Update the selected percentage
-        selections[index].percentage = newValue
-        
-        if selections.count == 2 {
-            // For exactly 2 selections, they must complement to 100%
-            let otherIndex = (index == 0) ? 1 : 0
-            let complementValue = Int16(100 - newValue)
+        if currentSelections.count == 2 {
+            if let otherSelection = currentSelections.first(where: { $0.id != selection.id }) {
+                otherSelection.percentage = 100 - newValue
+            }
+        } else if currentSelections.count > 2 {
+            let otherSelections = currentSelections.filter { $0.id != selection.id }
             
-            // Directly set the complement - it will always be valid since we only allow 25, 50, 75
-            // 25 -> 75, 50 -> 50, 75 -> 25
-            selections[otherIndex].percentage = complementValue
-            
-        } else if selections.count > 2 {
-            // For more than 2 selections, distribute remaining percentage evenly among others
-            let remainingPercentage = Int16(100 - newValue)
-            let numberOfOthers = Int16(selections.count - 1)
+            let remainingPercentage = 100 - Int(newValue)
+            let numberOfOthers = otherSelections.count
             
             if numberOfOthers > 0 {
-                let basePercentage = remainingPercentage / numberOfOthers
+                let base = remainingPercentage / numberOfOthers
                 let remainder = remainingPercentage % numberOfOthers
-                
-                var distributedCount: Int16 = 0
-                for i in selections.indices {
-                    if i != index {
-                        // Give base percentage plus 1 extra to first 'remainder' number of items
-                        selections[i].percentage = basePercentage + (distributedCount < remainder ? 1 : 0)
-                        distributedCount += 1
-                    }
+                for (i, item) in otherSelections.enumerated() {
+                    item.percentage = Int16(base + (i < remainder ? 1 : 0))
                 }
             }
         }
         
-        // Small delay to ensure UI updates properly
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.isUpdatingPercentages = false
-        }
+        try? context.save()
     }
 }

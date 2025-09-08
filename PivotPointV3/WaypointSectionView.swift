@@ -2,124 +2,108 @@ import SwiftUI
 import CoreData
 import CoreLocation
 
-struct WaypointButtonStyle: ButtonStyle {
-    let color: Color
-    let isDisabled: Bool
-    
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.vertical, 8)
-            .foregroundColor(isDisabled ? .secondary : color)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isDisabled ? Color.secondary.opacity(0.6) : color, lineWidth: 1.5)
-            )
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
-    }
-}
-
 struct WaypointSectionView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @ObservedObject var report: DTAReport
+    @ObservedObject var viewModel: DTAReportViewModel
     @StateObject var locationHelper = LocationHelper.shared
     
     @State private var showAddSpotView = false
+    @State private var showDeletionAlert = false
+    @State private var isAddingWaypoint = false
+    @State private var editingWaypoint: DTAWaypoint?
 
-    private var waypoints: [DTAWaypoint] {
-        report.waypointsArray
-    }
-    
-    private var hasStartPoint: Bool {
-        waypoints.contains { $0.isStartPoint }
-    }
-    
-    private var hasEndPoint: Bool {
-        waypoints.contains { $0.isEndPoint }
-    }
+    private var waypoints: [DTAWaypoint] { viewModel.waypointsArray }
+    private var hasStartPoint: Bool { waypoints.contains { $0.isStartPoint } }
+    private var hasEndPoint: Bool { waypoints.contains { $0.isEndPoint } }
 
     var body: some View {
-        Section("Waypoints") {
-            HStack(spacing: 12) {
-                Button(action: { addWaypoint(label: "Start") }) {
-                    Text("Start").fontWeight(.bold).frame(maxWidth: .infinity)
-                }
-                .buttonStyle(WaypointButtonStyle(color: .green, isDisabled: hasStartPoint))
-                .disabled(hasStartPoint)
-                
-                Button(action: { addWaypoint(label: "End") }) {
-                    Text("End").fontWeight(.bold).frame(maxWidth: .infinity)
-                }
-                .buttonStyle(WaypointButtonStyle(color: .red, isDisabled: hasEndPoint))
-                .disabled(hasEndPoint)
-
-                Button(action: { showAddSpotView = true }) {
-                    Text("Spot").fontWeight(.bold).frame(maxWidth: .infinity)
-                }
-                .buttonStyle(WaypointButtonStyle(color: .orange, isDisabled: false))
+        HStack {
+            Button("Add Start") { addWaypoint(label: "Start", isStart: true) }
+                .buttonStyle(.borderedProminent).tint(.green)
+                .disabled(hasStartPoint || isAddingWaypoint)
+            
+            Button("Add End") { addWaypoint(label: "End", isEnd: true) }
+                .buttonStyle(.borderedProminent).tint(.red)
+                .disabled(!hasStartPoint || hasEndPoint || isAddingWaypoint)
+            
+            Button("Add Spot") {
+                showAddSpotView = true
             }
-            .padding(.vertical, 4)
+            .buttonStyle(.borderedProminent).tint(.orange)
+            .disabled(isAddingWaypoint)
+        }
+        .frame(maxWidth: .infinity)
 
-            if waypoints.isEmpty {
-                Text("No waypoints added.").foregroundColor(.secondary)
-            } else {
-                ForEach(waypoints) { waypoint in
-                    NavigationLink(destination: EditWaypointView(waypoint: waypoint)) {
-                        HStack {
-                            Text(waypoint.label ?? "Waypoint")
-                                .foregroundColor(colorForWaypoint(label: waypoint.label))
-                                .fontWeight(.semibold)
-
-                            if let notes = waypoint.locationNotes, !notes.isEmpty {
-                                Text("- \(notes)").lineLimit(1).truncationMode(.tail).foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Text(waypoint.ddmCoordinateString).font(.caption2).foregroundColor(.secondary)
-                        }
-                    }
-                }
-                .onDelete(perform: deleteWaypoint)
+        ForEach(waypoints) { waypoint in
+            HStack {
+                Text(waypoint.label ?? "Waypoint").fontWeight(.semibold)
+                    .foregroundColor(colorForWaypoint(label: waypoint.label))
+                Spacer()
+                Text(waypoint.ddmCoordinateString).font(.caption).foregroundColor(.secondary)
             }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                // Only allow editing of spot waypoints
+                if waypoint.isSpotPoint {
+                    editingWaypoint = waypoint
+                }
+            }
+        }
+        .onDelete(perform: deleteWaypoint)
+        .alert("Cannot Delete Start Point", isPresented: $showDeletionAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("You must delete the 'End' point before deleting the 'Start' point.")
         }
         .sheet(isPresented: $showAddSpotView) {
-            AddSpotWaypointView(report: report)
+            EnhancedAddSpotWaypointView(report: viewModel.report)
+        }
+        .sheet(item: $editingWaypoint) { waypoint in
+            EditWaypointView(waypoint: waypoint)
         }
     }
     
-    private func addWaypoint(label: String) {
+    private func addWaypoint(label: String, isStart: Bool = false, isEnd: Bool = false) {
+        isAddingWaypoint = true
         let newWaypoint = DTAWaypoint(context: viewContext)
         newWaypoint.id = UUID()
+        newWaypoint.label = label
         newWaypoint.latitude = locationHelper.currentLatitude
         newWaypoint.longitude = locationHelper.currentLongitude
-        newWaypoint.label = label
-        newWaypoint.dtaReport = report
-        newWaypoint.isStartPoint = label.contains("Start")
-        newWaypoint.isEndPoint = label.contains("End")
-        
-        do {
-            try viewContext.save()
-        } catch {
-            print("Failed to save waypoint: \(error)")
+        newWaypoint.isStartPoint = isStart
+        newWaypoint.isEndPoint = isEnd
+        newWaypoint.dtaReport = viewModel.report
+        save()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            isAddingWaypoint = false
         }
     }
-    
+
+    private func addSpotWaypoint() {
+        showAddSpotView = true
+    }
+
     private func deleteWaypoint(at offsets: IndexSet) {
         for index in offsets {
-            viewContext.delete(waypoints[index])
+            let waypointToDelete = waypoints[index]
+            if waypointToDelete.isStartPoint && hasEndPoint {
+                showDeletionAlert = true
+                return
+            }
+            viewContext.delete(waypointToDelete)
         }
-        do {
-            try viewContext.save()
-        } catch {
-            print("Failed to delete waypoints: \(error)")
-        }
+        save()
     }
-    
+
+    private func save() {
+        try? viewContext.save()
+    }
+
     private func colorForWaypoint(label: String?) -> Color {
         guard let label = label else { return .primary }
         if label.starts(with: "Start") { return .green }
-        else if label.starts(with: "End") { return .red }
-        else if label.starts(with: "Spot") { return .orange }
+        if label.starts(with: "End") { return .red }
+        if label.starts(with: "Spot") { return .orange }
         return .primary
     }
 }

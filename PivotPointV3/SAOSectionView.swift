@@ -1,20 +1,34 @@
 import SwiftUI
 
 struct SAOSectionView: View {
-    @Binding var saoOverview: String
-    // THIS IS THE FIX: This now correctly expects a Bool
-    @Binding var saoBriefedToCrew: Bool
-
+    @ObservedObject var report: DTAReport
+    
     var body: some View {
-        Section("Site Assessment Overview (SAO)") {
-            Picker("SAO Overview", selection: $saoOverview) {
-                ForEach(DTAPicklists.saoOverviewOptions, id: \.self) { option in
-                    Text(option).tag(option)
-                }
+        Section("SAO (Safety Assessment Overview)") {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("SAO Overview").font(.caption).foregroundColor(.secondary)
+                TextField("Enter SAO overview", text: $report.saoOverview.unwrapped(with: ""), axis: .vertical)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .lineLimit(3...6)
             }
-
-            // This is now a Toggle, which works directly with a Bool
-            Toggle("SAO Briefed to Crew?", isOn: $saoBriefedToCrew)
+            
+            Toggle("SAO Briefed to Crew", isOn: $report.saoBriefedToCrew)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("SAO Comment").font(.caption).foregroundColor(.secondary)
+                TextField("Enter SAO comment", text: $report.saoComment.unwrapped(with: ""), axis: .vertical)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .lineLimit(3...6)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Area Safe for Work Comment").font(.caption).foregroundColor(.secondary)
+                TextField("Enter area safety comment", text: $report.areaSafeForWorkComment.unwrapped(with: ""), axis: .vertical)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .lineLimit(3...6)
+            }
+            
+            Toggle("Area Between Points Safe for Work", isOn: $report.areaBetweenPointsSafeForWork)
         }
     }
 }

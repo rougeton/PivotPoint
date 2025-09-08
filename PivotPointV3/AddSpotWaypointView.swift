@@ -4,7 +4,6 @@ import PhotosUI
 
 struct AddSpotWaypointView: View {
     @ObservedObject var report: DTAReport
-    // --- FIX: Gets the context from the environment instead of the initializer ---
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
@@ -23,14 +22,8 @@ struct AddSpotWaypointView: View {
                 
                 Section("Attach Photo (Optional)") {
                     if let data = attachedPhotoData, let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 200)
-                            .cornerRadius(8)
-                        Button("Remove Photo", role: .destructive) {
-                            attachedPhotoData = nil
-                        }
+                        Image(uiImage: uiImage).resizable().scaledToFit().frame(maxHeight: 200).cornerRadius(8)
+                        Button("Remove Photo", role: .destructive) { attachedPhotoData = nil }
                     } else {
                         Button("Take Photo") {
                             if UIImagePickerController.isSourceTypeAvailable(.camera) {
@@ -46,19 +39,11 @@ struct AddSpotWaypointView: View {
             .navigationTitle("Add Spot Waypoint")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        addSpotAndDismiss()
-                    }
-                }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Add") { addSpotAndDismiss() } }
             }
             .fullScreenCover(isPresented: $showingCamera) {
-                ImagePicker(sourceType: .camera) { imageData in
-                    self.attachedPhotoData = imageData
-                }
+                ImagePicker(sourceType: .camera) { self.attachedPhotoData = $0 }
             }
             .onChange(of: spotPhotoPickerItem) { _, newItem in
                 Task {
@@ -68,7 +53,7 @@ struct AddSpotWaypointView: View {
                 }
             }
             .alert("Camera Not Available", isPresented: $showCameraUnavailableAlert) {
-                Button("OK", role: .cancel) {}
+                Button("OK") {}
             } message: {
                 Text("This device does not have a camera available.")
             }
@@ -76,10 +61,9 @@ struct AddSpotWaypointView: View {
     }
     
     private func addSpotAndDismiss() {
-        let spotLabel = "Spot \(report.waypointsArray.filter { $0.label?.starts(with: "Spot") == true }.count + 1)"
+        let spotLabel = "Spot \(report.waypointsArray.filter { $0.isSpotPoint }.count + 1)"
         
         let newWaypoint = DTAWaypoint(context: viewContext)
-        newWaypoint.id = UUID()
         newWaypoint.latitude = LocationHelper.shared.currentLatitude
         newWaypoint.longitude = LocationHelper.shared.currentLongitude
         newWaypoint.label = spotLabel
@@ -94,12 +78,7 @@ struct AddSpotWaypointView: View {
             attachment.photoTimestamp = Date()
             
             let sanitizedComment = sanitizeForFileName(comment)
-            let finalFileName: String
-            if sanitizedComment.isEmpty {
-                finalFileName = "\(spotLabel).jpg"
-            } else {
-                finalFileName = "\(spotLabel) - \(sanitizedComment).jpg"
-            }
+            let finalFileName = sanitizedComment.isEmpty ? "\(spotLabel).jpg" : "\(spotLabel)-\(sanitizedComment).jpg"
             attachment.fileName = finalFileName
             
             if let docsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
@@ -114,18 +93,12 @@ struct AddSpotWaypointView: View {
             attachment.dtaReport = report
         }
         
-        do {
-            try viewContext.save()
-            print("Successfully saved Spot waypoint and photo attachment.")
-        } catch {
-            print("Failed to save new spot waypoint: \(error.localizedDescription)")
-        }
-        
+        try? viewContext.save()
         dismiss()
     }
     
     private func sanitizeForFileName(_ string: String) -> String {
-        let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>:")
+        let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>: ")
         return string.components(separatedBy: invalidCharacters).joined(separator: "_")
     }
 }

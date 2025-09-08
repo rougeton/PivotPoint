@@ -28,24 +28,11 @@ extension FireFolder {
     }
 }
 
-extension FireCSV {
-    var unwrappedFileName: String {
-        fileName ?? "Untitled CSV"
-    }
-}
-
-extension FirePDF {
-    var unwrappedFileName: String {
-        fileName ?? "Untitled PDF"
-    }
-}
-
 extension DTAWaypoint {
     var coordinateString: String {
         return String(format: "%.6f, %.6f", latitude, longitude)
     }
 
-    // --- NEW: DDM Coordinate Formatting ---
     var ddmCoordinateString: String {
         let latDegrees = Int(abs(latitude))
         let latMinutes = (abs(latitude) - Double(latDegrees)) * 60
@@ -58,11 +45,5 @@ extension DTAWaypoint {
         return String(format: "%d° %.3f' %@, %d° %.3f' %@",
                       latDegrees, latMinutes, latDirection,
                       lonDegrees, lonMinutes, lonDirection)
-    }
-}
-
-extension Date {
-    var startOfDay: Date {
-        Calendar.current.startOfDay(for: self)
     }
 }

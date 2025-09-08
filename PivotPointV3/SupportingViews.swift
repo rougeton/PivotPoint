@@ -6,7 +6,8 @@ struct WaypointsListView: View {
         
     var body: some View {
         List {
-            ForEach(viewModel.waypointsArray) { waypoint in
+            // Use waypointsArray from viewModel
+            ForEach(viewModel.waypointsArray, id: \.objectID) { waypoint in
                 HStack {
                     VStack(alignment: .leading) {
                         Text(waypoint.label ?? "Unnamed Waypoint").font(.headline)
@@ -18,7 +19,9 @@ struct WaypointsListView: View {
             .onDelete { indexSet in
                 for index in indexSet {
                     let waypoint = viewModel.waypointsArray[index]
-                    Task { @MainActor in $viewModel.removeWaypoint(waypoint) }
+                    // Remove waypoint from context
+                    viewModel.context.delete(waypoint)
+                    viewModel.saveContext()
                 }
             }
         }
@@ -32,14 +35,20 @@ struct PhotosListView: View {
     var body: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
+                // Use images array from viewModel
                 ForEach(viewModel.images) { image in
                     VStack {
                         Image(uiImage: image.image)
-                            .resizable().aspectRatio(contentMode: .fit).frame(height: 150).cornerRadius(8)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 150)
+                            .cornerRadius(8)
                         Button("Delete") {
-                            Task { @MainActor in viewModel.removeImage(image) }
+                            // Remove the media attachment
+                            viewModel.removeMediaAttachment(image.mediaAttachment)
                         }
-                        .foregroundColor(.red).font(.caption)
+                        .foregroundColor(.red)
+                        .font(.caption)
                     }
                 }
             }
@@ -64,24 +73,32 @@ struct SpotWaypointSheet: View {
             Form {
                 Section("Location") {
                     HStack {
-                        Text("Latitude:"); Spacer()
+                        Text("Latitude:")
+                        Spacer()
                         Text(String(format: "%.6f", latitude)).foregroundColor(.secondary)
                     }
                     HStack {
-                        Text("Longitude:"); Spacer()
+                        Text("Longitude:")
+                        Spacer()
                         Text(String(format: "%.6f", longitude)).foregroundColor(.secondary)
                     }
                 }
                 Section("Waypoint Details") {
                     TextField("Label (e.g., 'Spot 1', 'Pump Site')", text: $label)
-                    TextField("Notes", text: $notes, axis: .vertical).lineLimit(3...6)
+                    TextField("Notes", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
             }
-            .navigationTitle("Spot Waypoint").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Spot Waypoint")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: onCancel) }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onSave(latitude, longitude, label, notes) }
+                    Button("Save") {
+                        onSave(latitude, longitude, label, notes)
+                    }
                     .disabled(label.isEmpty)
                 }
             }

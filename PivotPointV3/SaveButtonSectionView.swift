@@ -1,20 +1,53 @@
-// MARK: - SaveButtonSectionView.swift
 import SwiftUI
+import CoreData
 
 struct SaveButtonSectionView: View {
-    var isFormValid: Bool
-    var saveAction: () -> Void
-    var cancelAction: () -> Void
-
+    @ObservedObject var report: DTAReport
+    @ObservedObject var fireFolder: FireFolder
+    let viewContext: NSManagedObjectContext
+    
+    @State private var showingAlert = false
+    @State private var alertMessage = ""
+    
     var body: some View {
-        HStack {
-            Button("Cancel", action: cancelAction)
-                .buttonStyle(.bordered)
-            Spacer()
-            Button("Save DTA Report", action: saveAction)
-                .buttonStyle(.borderedProminent)
-                .disabled(!isFormValid)
+        Section {
+            Button(action: saveReport) {
+                HStack {
+                    Spacer()
+                    Text("Save Report")
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
         }
-        .padding(.vertical)
+        .alert("Save Status", isPresented: $showingAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+    
+    private func saveReport() {
+        do {
+            // Ensure proper relationship setup
+            if report.fireFolder != fireFolder {
+                report.fireFolder = fireFolder
+                fireFolder.addToDtaReports(report)
+            }
+            
+            // Set default values if needed
+            if report.id == nil {
+                report.id = UUID()
+            }
+            
+            try viewContext.save()
+            alertMessage = "Report saved successfully!"
+            showingAlert = true
+        } catch {
+            alertMessage = "Failed to save report: \(error.localizedDescription)"
+            showingAlert = true
+        }
     }
 }

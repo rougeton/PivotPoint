@@ -70,5 +70,22 @@ struct PersistenceController {
         }
 
         container.viewContext.automaticallyMergesChangesFromParent = true
+
+        // Setup global auto-save timer
+        setupAutoSaveTimer()
+    }
+
+    private func setupAutoSaveTimer() {
+        Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            let context = container.viewContext
+            if context.hasChanges {
+                do {
+                    try context.save()
+                    print("Auto-saved Core Data context")
+                } catch {
+                    print("Auto-save failed: \(error)")
+                }
+            }
+        }
     }
 }

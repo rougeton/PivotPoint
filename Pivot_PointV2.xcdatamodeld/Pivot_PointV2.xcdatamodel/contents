@@ -8,7 +8,7 @@
         <attribute name="assessedDistanceFromWorkArea" attributeType="String"/>
         <attribute name="assessedMin1_5TreeLengths" attributeType="String"/>
         <attribute name="assessedTLComment" optional="YES" attributeType="String"/>
-        <attribute name="assessmentStartEndSpot" attributeType="String"/>
+        <attribute name="assessmentStartEndSpot" optional="YES" attributeType="String"/>
         <attribute name="comments" optional="YES" attributeType="String"/>
         <attribute name="deviceType" optional="YES" attributeType="String"/>
         <attribute name="dtaMarkingProtocolComment" optional="YES" attributeType="String"/>

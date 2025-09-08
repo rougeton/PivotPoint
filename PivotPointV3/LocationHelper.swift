@@ -38,3 +38,22 @@ class LocationHelper: NSObject, ObservableObject, CLLocationManagerDelegate {
         lastLocation?.coordinate.longitude ?? 0
     }
 }
+
+extension CLLocation {
+    var ddmCoordinateString: String {
+        let lat = coordinate.latitude
+        let lon = coordinate.longitude
+
+        let latDegrees = Int(abs(lat))
+        let latMinutes = (abs(lat) - Double(latDegrees)) * 60
+        let latDirection = lat >= 0 ? "N" : "S"
+
+        let lonDegrees = Int(abs(lon))
+        let lonMinutes = (abs(lon) - Double(lonDegrees)) * 60
+        let lonDirection = lon >= 0 ? "E" : "W"
+
+        return String(format: "%02d°%06.3f'%@ %03d°%06.3f'%@",
+                      latDegrees, latMinutes, latDirection,
+                      lonDegrees, lonMinutes, lonDirection)
+    }
+}

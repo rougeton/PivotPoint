@@ -34,7 +34,6 @@
 				DTAPicklists.swift = (ios, );
 				DTAReportExporter.swift = (ios, );
 				DTAReportView.swift = (ios, );
-				DTAReportViewModel.swift = (ios, );
 				DailyAssessmentSectionView.swift = (ios, );
 				ExportView.swift = (ios, );
 				FireFolderDetailView.swift = (ios, );

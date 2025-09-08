@@ -33,10 +33,11 @@ enum DTAPicklists {
         "Unmanned pumpsite (black)", "Unmanned pump site (green)"
     ]
 
-    static let levelOfDisturbanceOptions = ["0-VLR", "1-Low", "2-Medium", "3-High"]
+    // UPDATED: Removed number prefixes and changed "Medium" to "Moderate"
+    static let levelOfDisturbanceOptions = ["VLR", "Low", "Moderate", "High"]
     
+    // UPDATED: Removed "Not Applicable" option as requested
     static let lodLowHazardsOptions = [
-        "Not Applicable",
         ">50% cross section damage/decay",
         "Greatly >50% lateral root damage/decay",
         "Insecurely lodged/hung up",
@@ -44,16 +45,18 @@ enum DTAPicklists {
         "Spongy snags (heart rot conks)"
     ]
     
+    // UPDATED: Removed "Not Applicable" option as requested
     static let lodMediumFirLarchPineSpruceOptions = [
-        "Not Applicable", "Split Trunk", "Roots Inspection", "Butt and Stem Cankers",
-        "Dead Limbs", "Stem Damage", "Fungal Fruiting Bodies", "Witches’ Broom",
+        "Split Trunk", "Roots Inspection", "Butt and Stem Cankers",
+        "Dead Limbs", "Stem Damage", "Fungal Fruiting Bodies", "Witches' Broom",
         "Hazardous Top", "Tree lean (4-8 trees) >10% + root probs",
         "Tree Lean (Class 1-3) >15%+root probs", "Thick Sloughing Bark",
         "Multiple trees, multiple defects"
     ]
     
+    // UPDATED: Removed "Not Applicable" option as requested
     static let lodMediumRedYellowCedarOptions = [
-        "Not Applicable", "Dead Limbs", "Hazardous Top", "Multiple trees, Multiple Defects",
+        "Dead Limbs", "Hazardous Top", "Multiple trees, Multiple Defects",
         "Root Inspection", "Sapwood Slabs", "Split Trunk", "Stem damage",
         "Tree Lean (class 1-3)", "Tree Lean (Class 4-8)"
     ]

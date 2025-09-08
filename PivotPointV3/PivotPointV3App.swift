@@ -28,8 +28,16 @@ struct PivotPointV3App: App {
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
+            // Save on any phase change to ensure data persistence
+            try? persistenceController.container.viewContext.save()
+
             if newPhase == .inactive || newPhase == .background {
-                try? persistenceController.container.viewContext.save()
+                // Force save all child contexts as well
+                persistenceController.container.viewContext.performAndWait {
+                    if persistenceController.container.viewContext.hasChanges {
+                        try? persistenceController.container.viewContext.save()
+                    }
+                }
             }
         }
     }
