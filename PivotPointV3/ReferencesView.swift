@@ -3,18 +3,30 @@ import SwiftUI
 /// Placeholder view for the Reference Library section
 struct ReferencesView: View {
     var body: some View {
-        NavigationView {
-            VStack {
-                Text("📚 Reference Library")
-                    .font(.largeTitle)
-                    .padding()
+        ZStack(alignment: .top) {
+            // Background header
+            HeaderView()
+                .ignoresSafeArea(edges: .top)
 
-                Text("You can later add PDFs, SOPs, guides, etc.")
-                    .foregroundColor(.secondary)
+            // Content with proper spacing
+            VStack(spacing: 0) {
+                // Spacer for header
+                Spacer(minLength: 200)
 
-                Spacer()
+                VStack {
+                    Text("📚 Reference Library")
+                        .font(.largeTitle)
+                        .padding()
+
+                    Text("You can later add PDFs, SOPs, guides, etc.")
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+                }
             }
-            .navigationTitle("References")
         }
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
     }
 }

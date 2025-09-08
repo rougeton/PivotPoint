@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to take photos for DTA reports and waypoint documentation.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to attach existing photos to DTA reports and waypoints.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs location access to record GPS coordinates for waypoints and DTA reports.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs location access to record GPS coordinates for waypoints and DTA reports.</string>
+</dict>
 </plist>

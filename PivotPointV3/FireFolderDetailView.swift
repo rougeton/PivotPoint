@@ -96,25 +96,36 @@ struct FireFolderDetailView: View {
         // Use new format: DTA-(date)-(Activity) - Activity will be updated when entered
         newReport.reportTitle = "DTA-\(dateString)-NoActivity"
 
+        // Set relationship and basic info
         newReport.fireFolder = fireFolder
         newReport.fireCenter = fireFolder.fireCenter
         newReport.fireNumber = fireFolder.fireNumber ?? ""
-        newReport.assessedBy = userSettings.userName
 
-        // Set required locationDDM field with current location or default
+        // Set location with current GPS or default
         let lat = LocationHelper.shared.currentLatitude
         let lon = LocationHelper.shared.currentLongitude
         if lat != 0 && lon != 0 {
             newReport.locationDDM = LocationHelper.shared.lastLocation?.ddmCoordinateString ?? "00°00.000'N 000°00.000'W"
         } else {
-            newReport.locationDDM = "00°00.000'N 000°00.000'W" // Default placeholder
+            newReport.locationDDM = "00°00.000'N 000°00.000'W"
         }
 
-        // Set required assessmentStartEndSpot field
-        newReport.assessmentStartEndSpot = ""
+        // Set ALL required Core Data fields to prevent validation errors
+        newReport.activity = ""
+        newReport.assessedBy = userSettings.userName
+        newReport.assessedDistanceFromWorkArea = ""
+        newReport.assessedMin1_5TreeLengths = ""
+        newReport.dtaMarkingProtocolFollowed = ""
+        newReport.levelOfDisturbance = ""
+        newReport.primaryHazardsPresent = ""
+        newReport.reassessmentNeeded = ""
+        newReport.reportTitle = "DTA-\(dateString)-NoActivity"
+        newReport.saoOverview = ""
 
-        // Set required assessmentStartEndSpot field with default value
-        newReport.assessmentStartEndSpot = "Not Set"
+        // Set required Boolean fields
+        newReport.saoBriefedToCrew = false
+        newReport.areaBetweenPointsSafeForWork = false
+        newReport.noWorkZones = false
         
         do {
             try viewContext.save()
@@ -140,33 +151,49 @@ struct ReportTypeSelectionSheet: View {
     ]
     
     var body: some View {
-        NavigationView {
-            List(reportTypes, id: \.self) { reportType in
-                Button(action: {
-                    if !reportType.contains("Coming Soon") {
-                        onSelection(reportType)
-                    }
-                }) {
-                    HStack {
-                        Text(reportType)
-                            .foregroundColor(reportType.contains("Coming Soon") ? .gray : .primary)
-                        Spacer()
-                        if reportType.contains("Coming Soon") {
-                            Text("Soon")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+        ZStack(alignment: .top) {
+            // Background header
+            HeaderView()
+                .ignoresSafeArea(edges: .top)
+
+            // Form content with proper spacing
+            List {
+                // Spacer section to push content below header
+                Section(header: Spacer(minLength: 200)) {
+                    EmptyView()
+                }
+
+                Section("Select Report Type") {
+                    ForEach(reportTypes, id: \.self) { reportType in
+                        Button(action: {
+                            if !reportType.contains("Coming Soon") {
+                                onSelection(reportType)
+                            }
+                        }) {
+                            HStack {
+                                Text(reportType)
+                                    .foregroundColor(reportType.contains("Coming Soon") ? .gray : .primary)
+                                Spacer()
+                                if reportType.contains("Coming Soon") {
+                                    Text("Soon")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                            }
                         }
+                        .disabled(reportType.contains("Coming Soon"))
                     }
                 }
-                .disabled(reportType.contains("Coming Soon"))
             }
-            .navigationTitle("Select Report Type")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+            .listStyle(.insetGrouped)
+        }
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
                 }
             }
         }

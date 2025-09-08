@@ -12,22 +12,34 @@ struct EditFireFolderView: View {
     }
 
     var body: some View {
-        NavigationView {
+        ZStack(alignment: .top) {
+            // Background header
+            HeaderView()
+                .ignoresSafeArea(edges: .top)
+
+            // Form content with proper spacing
             Form {
+                // Spacer section to push content below header
+                Section(header: Spacer(minLength: 200)) {
+                    EmptyView()
+                }
+
                 Section("Edit Fire Number") {
                     TextField("Fire Number", text: $fireNumber)
                 }
             }
-            .navigationTitle("Edit Fire")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { saveAndDismiss() }
-                        .disabled(fireNumber.isEmpty)
-                }
+            .listStyle(.insetGrouped)
+        }
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { saveAndDismiss() }
+                    .disabled(fireNumber.isEmpty)
             }
         }
     }

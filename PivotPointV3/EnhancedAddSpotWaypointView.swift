@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 import PhotosUI
+import AVFoundation
 
 struct EnhancedAddSpotWaypointView: View {
     @ObservedObject var report: DTAReport
@@ -11,9 +12,22 @@ struct EnhancedAddSpotWaypointView: View {
     @State private var spotDescription = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var attachedPhotoData: Data?
-    @State private var showingCamera = false
+    @State private var activeImagePicker: ImagePickerType?
     @State private var showCameraUnavailableAlert = false
     @State private var isInitialized = false
+    @State private var isCheckingPermissions = false
+
+    enum ImagePickerType: Identifiable {
+        case camera
+        case photoLibrary
+
+        var id: String {
+            switch self {
+            case .camera: return "camera"
+            case .photoLibrary: return "photoLibrary"
+            }
+        }
+    }
     
     private let spotTypeOptions = [
         "Safe Zone",
@@ -48,35 +62,63 @@ struct EnhancedAddSpotWaypointView: View {
     }
 
     var body: some View {
-        NavigationView {
+        ZStack(alignment: .top) {
+            // Background header
+            HeaderView()
+                .ignoresSafeArea(edges: .top)
+
+            // Form content with proper spacing
             Form {
+                // Spacer section to push content below header
+                Section(header: Spacer(minLength: 200)) {
+                    EmptyView()
+                }
+
                 spotTypeSection
                 descriptionSection
                 photoSection
                 previewSection
             }
-            .navigationTitle("Add Spot Waypoint")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                toolbarContent
-            }
-            .fullScreenCover(isPresented: $showingCamera) {
-                cameraView
-            }
-            .onChange(of: selectedPhotoItem) { _, newItem in
-                handlePhotoSelection(newItem)
-            }
-            .alert("Camera Not Available", isPresented: $showCameraUnavailableAlert) {
-                Button("OK") {}
-            } message: {
-                Text("This device does not have a camera available.")
-            }
+            .listStyle(.insetGrouped)
         }
-        .onAppear {
-            initializeView()
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
+        .toolbar {
+            toolbarContent
+        }
+            .fullScreenCover(item: $activeImagePicker) { pickerType in
+                switch pickerType {
+                case .camera:
+                    ImagePicker(sourceType: .camera) { data in
+                        handleImagePickerResult(data, from: .camera)
+                    }
+                case .photoLibrary:
+                    ImagePicker(sourceType: .photoLibrary) { data in
+                        handleImagePickerResult(data, from: .photoLibrary)
+                    }
+                }
+            }
+            .alert("Camera Permission Needed", isPresented: $showCameraUnavailableAlert) {
+                Button("Open Settings") {
+                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(settingsUrl)
+                    }
+                }
+                Button("Try Again") {
+                    // Re-check permissions in case user enabled them
+                    handleTakePhotoTap()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("To take photos, please enable camera access:\n\n1. Tap 'Open Settings'\n2. Find 'Camera' and turn it ON\n3. Return to app and tap 'Try Again'")
+            }
+            .onAppear {
+                initializeView()
+            }
         }
     }
-    
+
     // MARK: - View Components
     
     private var spotTypeSection: some View {
@@ -168,28 +210,41 @@ struct EnhancedAddSpotWaypointView: View {
     }
     
     private var photoSelectionView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             takePhotoButton
+
+            Divider()
+
             photoLibrarySection
+
             photoHint
         }
+        .padding(.vertical, 8)
     }
     
     private var takePhotoButton: some View {
-        Button(action: handleTakePhotoTap) {
+        Button(action: {
+            print("🔥 DEBUG: TAKE PHOTO button tapped")
+            handleTakePhotoTap()
+        }) {
             photoButtonContent(icon: "camera", text: "Take Photo", color: .blue)
         }
     }
     
     private var photoLibrarySection: some View {
-        VStack {
-            PhotosPicker(
-                selection: $selectedPhotoItem,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
-                photoButtonContent(icon: "photo.on.rectangle", text: "Choose from Library", color: .green)
+        Button(action: {
+            print("🔥 DEBUG: CHOOSE FROM LIBRARY button tapped")
+            activeImagePicker = .photoLibrary
+        }) {
+            HStack {
+                Image(systemName: "photo.on.rectangle")
+                Text("Choose from Library")
             }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color.green)
+            .foregroundColor(.white)
+            .cornerRadius(8)
         }
     }
     
@@ -251,13 +306,7 @@ struct EnhancedAddSpotWaypointView: View {
         }
         .disabled(shouldDisableAddButton)
     }
-    
-    private var cameraView: some View {
-        ImagePicker(sourceType: .camera) { data in
-            handleCameraResult(data)
-        }
-    }
-    
+
     // MARK: - Computed Properties
     
     private var hasAttachedPhoto: Bool {
@@ -277,15 +326,57 @@ struct EnhancedAddSpotWaypointView: View {
     }
     
     private func handleTakePhotoTap() {
-        if UIImagePickerController.isSourceTypeAvailable(.camera) {
-            showingCamera = true
-        } else {
+        // Prevent multiple simultaneous permission checks
+        guard !isCheckingPermissions else { return }
+
+        print("🔥 DEBUG: Take photo tapped")
+
+        // Check if camera is available
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            print("🔥 DEBUG: Camera not available on device")
+            DispatchQueue.main.async {
+                self.showCameraUnavailableAlert = true
+            }
+            return
+        }
+
+        // Check camera authorization
+        let authStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        print("🔥 DEBUG: Camera auth status: \(authStatus.rawValue)")
+
+        switch authStatus {
+        case .authorized:
+            print("🔥 DEBUG: Camera authorized, showing camera")
+            activeImagePicker = .camera
+        case .notDetermined:
+            print("🔥 DEBUG: Camera permission not determined, requesting...")
+            isCheckingPermissions = true
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    self.isCheckingPermissions = false
+                    print("🔥 DEBUG: Camera permission granted: \(granted)")
+                    if granted {
+                        self.activeImagePicker = .camera
+                    } else {
+                        self.showCameraUnavailableAlert = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            print("🔥 DEBUG: Camera permission denied/restricted - showing helpful alert")
+            showCameraUnavailableAlert = true
+        @unknown default:
+            print("🔥 DEBUG: Unknown camera permission status")
             showCameraUnavailableAlert = true
         }
     }
     
-    private func handleCameraResult(_ data: Data?) {
+    private func handleImagePickerResult(_ data: Data?, from source: ImagePickerType) {
+        let sourceName = source == .camera ? "Camera" : "Photo Library"
+        print("🔥 DEBUG: \(sourceName) result received: \(data != nil)")
         attachedPhotoData = data
+        // Clear the active picker to close the sheet
+        activeImagePicker = nil
     }
     
     private func handlePhotoSelection(_ newItem: PhotosPickerItem?) {
@@ -333,7 +424,9 @@ struct EnhancedAddSpotWaypointView: View {
     }
     
     private func createWaypoint(label: String, description: String) -> DTAWaypoint {
-        let newWaypoint = DTAWaypoint(context: viewContext)
+        // Use the report's context to ensure they're in the same context
+        let context = report.managedObjectContext ?? viewContext
+        let newWaypoint = DTAWaypoint(context: context)
         newWaypoint.id = UUID()
         newWaypoint.latitude = LocationHelper.shared.currentLatitude
         newWaypoint.longitude = LocationHelper.shared.currentLongitude
@@ -345,14 +438,16 @@ struct EnhancedAddSpotWaypointView: View {
     }
     
     private func createPhotoAttachment(with data: Data, label: String) {
-        let attachment = MediaAttachment(context: viewContext)
+        // Use the report's context to ensure they're in the same context
+        let context = report.managedObjectContext ?? viewContext
+        let attachment = MediaAttachment(context: context)
         attachment.id = UUID()
         attachment.mediaType = "photo"
         attachment.photoTimestamp = Date()
-        
+
         let sanitizedLabel = sanitizeFileName(label)
         attachment.fileName = "\(sanitizedLabel).jpg"
-        
+
         savePhotoToDisk(data: data, attachment: attachment)
         attachment.dtaReport = report
     }
@@ -387,7 +482,9 @@ struct EnhancedAddSpotWaypointView: View {
     
     private func saveAndDismiss() {
         do {
-            try viewContext.save()
+            // Use the report's context to ensure consistency
+            let context = report.managedObjectContext ?? viewContext
+            try context.save()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 dismiss()
             }

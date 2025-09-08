@@ -49,7 +49,7 @@ struct MainMenuView: View {
                     HStack {
                         // FIXED: All buttons now use a consistent structure.
                         NavigationLink(value: "FireCenterListView") {
-                            HoverButtonView(systemImageName: "flame.circle", label: "Fire Logs")
+                            HoverButtonView(systemImageName: "flame.circle", label: "🔥 TEST - Fire Logs")
                         }
                         .buttonStyle(PlainButtonStyle())
                         

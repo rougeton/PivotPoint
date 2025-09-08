@@ -5,27 +5,44 @@ struct WaypointsListView: View {
     @ObservedObject var viewModel: DTAReportViewModel
         
     var body: some View {
-        List {
-            // Use waypointsArray from viewModel
-            ForEach(viewModel.waypointsArray, id: \.objectID) { waypoint in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(waypoint.label ?? "Unnamed Waypoint").font(.headline)
-                        Text(waypoint.ddmCoordinateString).font(.caption).foregroundColor(.secondary)
+        ZStack(alignment: .top) {
+            // Background header
+            HeaderView()
+                .ignoresSafeArea(edges: .top)
+
+            // List content with proper spacing
+            List {
+                // Spacer section to push content below header
+                Section(header: Spacer(minLength: 200)) {
+                    EmptyView()
+                }
+
+                Section("Waypoints") {
+                    // Use waypointsArray from viewModel
+                    ForEach(viewModel.waypointsArray, id: \.objectID) { waypoint in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(waypoint.label ?? "Unnamed Waypoint").font(.headline)
+                                Text(waypoint.ddmCoordinateString).font(.caption).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
                     }
-                    Spacer()
+                    .onDelete { indexSet in
+                        for index in indexSet {
+                            let waypoint = viewModel.waypointsArray[index]
+                            // Remove waypoint from context
+                            viewModel.context.delete(waypoint)
+                            viewModel.saveContext()
+                        }
+                    }
                 }
             }
-            .onDelete { indexSet in
-                for index in indexSet {
-                    let waypoint = viewModel.waypointsArray[index]
-                    // Remove waypoint from context
-                    viewModel.context.delete(waypoint)
-                    viewModel.saveContext()
-                }
-            }
+            .listStyle(.insetGrouped)
         }
-        .navigationTitle("Waypoints")
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
     }
 }
 
@@ -33,28 +50,42 @@ struct PhotosListView: View {
     @ObservedObject var viewModel: DTAReportViewModel
         
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
-                // Use images array from viewModel
-                ForEach(viewModel.images) { image in
-                    VStack {
-                        Image(uiImage: image.image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 150)
-                            .cornerRadius(8)
-                        Button("Delete") {
-                            // Remove the media attachment
-                            viewModel.removeMediaAttachment(image.mediaAttachment)
+        ZStack(alignment: .top) {
+            // Background header
+            HeaderView()
+                .ignoresSafeArea(edges: .top)
+
+            // Content with proper spacing
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Spacer for header
+                    Spacer(minLength: 200)
+
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
+                        // Use images array from viewModel
+                        ForEach(viewModel.images) { image in
+                            VStack {
+                                Image(uiImage: image.image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(height: 150)
+                                    .cornerRadius(8)
+                                Button("Delete") {
+                                    // Remove the media attachment
+                                    viewModel.removeMediaAttachment(image.mediaAttachment)
+                                }
+                                .foregroundColor(.red)
+                                .font(.caption)
+                            }
                         }
-                        .foregroundColor(.red)
-                        .font(.caption)
                     }
+                    .padding()
                 }
             }
-            .padding()
         }
-        .navigationTitle("Photos")
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
     }
 }
 

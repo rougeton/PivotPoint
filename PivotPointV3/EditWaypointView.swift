@@ -6,17 +6,31 @@ struct EditWaypointView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
-        Form {
-            Section("Edit Waypoint Notes") {
-                TextEditor(text: Binding(
-                    get: { waypoint.locationNotes ?? "" },
-                    set: { waypoint.locationNotes = $0 }
-                ))
-                .frame(height: 200)
+        ZStack(alignment: .top) {
+            // Background header
+            HeaderView()
+                .ignoresSafeArea(edges: .top)
+
+            // Form content with proper spacing
+            Form {
+                // Spacer section to push content below header
+                Section(header: Spacer(minLength: 200)) {
+                    EmptyView()
+                }
+
+                Section("Edit Waypoint Notes") {
+                    TextEditor(text: Binding(
+                        get: { waypoint.locationNotes ?? "" },
+                        set: { waypoint.locationNotes = $0 }
+                    ))
+                    .frame(height: 200)
+                }
             }
+            .listStyle(.insetGrouped)
         }
-        .navigationTitle(waypoint.label ?? "Edit Waypoint")
+        .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
         .onDisappear {
             // Auto-save any changes when the user navigates back
             if viewContext.hasChanges {

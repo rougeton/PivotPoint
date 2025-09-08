@@ -11,6 +11,19 @@ struct WaypointSectionView: View {
     @State private var showDeletionAlert = false
     @State private var isAddingWaypoint = false
     @State private var editingWaypoint: DTAWaypoint?
+    @State private var activeSheet: ActiveSheet?
+
+    enum ActiveSheet: Identifiable {
+        case addSpot
+        case editWaypoint(DTAWaypoint)
+
+        var id: String {
+            switch self {
+            case .addSpot: return "addSpot"
+            case .editWaypoint(let waypoint): return "editWaypoint-\(waypoint.id?.uuidString ?? "")"
+            }
+        }
+    }
 
     private var waypoints: [DTAWaypoint] { viewModel.waypointsArray }
     private var hasStartPoint: Bool { waypoints.contains { $0.isStartPoint } }
@@ -26,11 +39,19 @@ struct WaypointSectionView: View {
                 .buttonStyle(.borderedProminent).tint(.red)
                 .disabled(!hasStartPoint || hasEndPoint || isAddingWaypoint)
             
-            Button("Add Spot") {
-                showAddSpotView = true
+            NavigationLink(destination:
+                EnhancedAddSpotWaypointView(report: viewModel.report)
+                    .onAppear {
+                        print("🔥 DEBUG: EnhancedAddSpotWaypointView appeared via navigation!")
+                    }
+            ) {
+                Text("Add Spot")
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.orange)
+                    .cornerRadius(8)
             }
-            .buttonStyle(.borderedProminent).tint(.orange)
-            .disabled(isAddingWaypoint)
         }
         .frame(maxWidth: .infinity)
 
@@ -55,9 +76,7 @@ struct WaypointSectionView: View {
         } message: {
             Text("You must delete the 'End' point before deleting the 'Start' point.")
         }
-        .sheet(isPresented: $showAddSpotView) {
-            EnhancedAddSpotWaypointView(report: viewModel.report)
-        }
+
         .sheet(item: $editingWaypoint) { waypoint in
             EditWaypointView(waypoint: waypoint)
         }
@@ -73,8 +92,14 @@ struct WaypointSectionView: View {
         newWaypoint.isStartPoint = isStart
         newWaypoint.isEndPoint = isEnd
         newWaypoint.dtaReport = viewModel.report
-        save()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+
+        do {
+            try viewContext.save()
+            // Reset immediately after successful save
+            isAddingWaypoint = false
+        } catch {
+            print("Failed to save waypoint: \(error)")
+            // Reset even if save fails to prevent button from staying disabled
             isAddingWaypoint = false
         }
     }
